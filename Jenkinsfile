@@ -15,20 +15,24 @@ pipeline {
 
         stage('Setup Node.js') {
             steps {
-                sh 'node -v'  // Check Node.js version
-                sh 'npm -v'   // Check npm version
+                sh 'node -v'  
+                sh 'npm -v'   
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                dir('frontend') {  // Ensure we're inside the frontend folder
+                    sh 'npm install'
+                }
             }
         }
 
         stage('Build Angular App') {
             steps {
-                sh 'npm run build -- --configuration=production'
+                dir('frontend') {
+                    sh 'npm run build -- --configuration=production'
+                }
             }
         }
 
@@ -36,7 +40,7 @@ pipeline {
             steps {
                 sh '''
                 sudo rm -rf /var/www/html/*
-                sudo cp -r dist/real-estate-management/frontend* /var/www/html/
+                sudo cp -r frontend/dist/* /var/www/html/
                 '''
             }
         }
@@ -51,7 +55,6 @@ pipeline {
         }
     }
 }
-
 
 
 
