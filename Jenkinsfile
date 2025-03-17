@@ -1,6 +1,10 @@
-
 pipeline {
     agent any
+
+    environment {
+        NODEJS_HOME = tool name: 'NodeJS', type: 'nodejs'
+        PATH = "${NODEJS_HOME}/bin:${env.PATH}"
+    }
 
     stages {
         stage('Checkout Code') {
@@ -11,66 +15,39 @@ pipeline {
 
         stage('Setup Node.js') {
             steps {
-                script {
-                    def nodeHome = tool name: 'NodeJS', type: 'nodejs'
-                    env.PATH = "${nodeHome}\\bin;${env.PATH}"
-                }
+                sh 'node -v'  // Check Node.js version
+                sh 'npm -v'   // Check npm version
             }
         }
 
-        stage('Install Dependencies - Frontend') {
+        stage('Install Dependencies') {
             steps {
-                dir('frontend') {
-                    bat 'npm install'
-                }
+                sh 'npm install'
             }
         }
 
         stage('Build Angular App') {
             steps {
-                dir('frontend') {
-                    bat 'npm run build'
-                }
+                sh 'npm run build -- --configuration=production'
             }
         }
 
-        stage('Run Angular Unit Tests') {
+        stage('Deploy to Server') {
             steps {
-                dir('frontend') {
-                    bat 'npm test'
-                }
-            }
-        }
-
-        stage('Install Dependencies - Backend') {
-            steps {
-                dir('backend') {
-                    bat 'npm install'
-                }
-            }
-        }
-
-        stage('Start Fastify Backend') {
-            steps {
-                dir('backend') {
-                    bat 'npm start'
-                }
-            }
-        }
-
-        stage('Archive Angular Build') {
-            steps {
-                archiveArtifacts artifacts: 'frontend/dist/**/*', fingerprint: true
+                sh '''
+                sudo rm -rf /var/www/html/*
+                sudo cp -r dist/real-estate-management/frontend* /var/www/html/
+                '''
             }
         }
     }
 
     post {
-        failure {
-            echo 'Build failed. Check logs for issues. ❌'
-        }
         success {
-            echo 'Build and deployment successful! ✅'
+            echo '✅ Angular Build & Deployment Successful!'
+        }
+        failure {
+            echo '❌ Build Failed! Check logs.'
         }
     }
 }
