@@ -19,13 +19,17 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                bat 'npm install'
+                dir('frontend') {  // Change 'frontend' to the correct folder
+                    bat 'npm install'
+                }
             }
         }
 
         stage('Run Application') {
             steps {
-                bat 'npm start'
+                dir('frontend') {  // Change 'frontend' to the correct folder
+                    bat 'npm start'
+                }
             }
         }
     }
