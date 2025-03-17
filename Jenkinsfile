@@ -17,49 +17,15 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies - Frontend') {
+        stage('Install Dependencies') {
             steps {
-                dir('frontend') {
-                    bat 'npm install'
-                }
+                bat 'npm install'
             }
         }
 
-        stage('Build Angular App') {
+        stage('Run Application') {
             steps {
-                dir('frontend') {
-                    bat 'npm run build'
-                }
-            }
-        }
-
-        stage('Run Angular Unit Tests') {
-            steps {
-                dir('frontend') {
-                    bat 'npm test'
-                }
-            }
-        }
-
-        stage('Install Dependencies - Backend') {
-            steps {
-                dir('backend') {
-                    bat 'npm install'
-                }
-            }
-        }
-
-        stage('Start Fastify Backend') {
-            steps {
-                dir('backend') {
-                    bat 'npm start'
-                }
-            }
-        }
-
-        stage('Archive Angular Build') {
-            steps {
-                archiveArtifacts artifacts: 'frontend/dist/**/*', fingerprint: true
+                bat 'npm start'
             }
         }
     }
