@@ -12,37 +12,130 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'master', url: 'https://github.com/patildinu/real-estate-management'
+                git branch: 'main', url: 'https://github.com/patildinu/real-estate-management'
             }
         }
+
         stage('Install Dependencies') {
             steps {
-                sh 'node -v'
-                sh 'npm -v'
-                sh 'npm install @angular/cli'  // Ensure global installation
-                sh 'export PATH=$(npm root -g)/.bin:$PATH' // Add npm global binaries to PATH
-                // sh 'ng version'  // Verify installation
-                sh 'rm -rf node_modules package-lock.json || true'
-                sh 'npm cache clean --force'
-                sh 'npm install'
+                sh '''
+                    echo "Node Version:"
+                    node -v
+
+                    echo "NPM Version:"
+                    npm -v
+
+                    echo "Installing Angular CLI..."
+                    npm install -g @angular/cli
+                    export PATH=$(npm root -g)/.bin:$PATH
+
+                    echo "Cleaning Cache and Reinstalling Dependencies..."
+                    rm -rf node_modules package-lock.json || true
+                    npm cache clean --force
+                    npm install
+
+                    echo "Angular CLI Version:"
+                    ng version
+                '''
             }
         }
+
         stage('Build Angular App') {
             steps {
-                sh 'export PATH=$(npm root -g)/.bin:$PATH && ng build --output-path=dist'
-                sh 'ls -l ${BUILD_DIR}/'
+                sh '''
+                    export PATH=$(npm root -g)/.bin:$PATH
+                    echo "Building Angular Project..."
+                    ng build --configuration=production --output-path=dist
+                    ls -l ${BUILD_DIR}/
+                '''
             }
         }
+
         stage('Deploy to EC2') {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_KEY', keyFileVariable: 'SSH_KEY_PATH', usernameVariable: 'SSH_USER')]) {
-                    sh "scp -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} -r ${BUILD_DIR}/* ${EC2_USER}@${EC2_IP}:${REMOTE_DIR}/"
-                    sh "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} ${EC2_USER}@${EC2_IP} 'sudo systemctl restart nginx'"
+                    sh '''
+                        echo "Deploying to EC2..."
+                        scp -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} -r ${BUILD_DIR}/* ${EC2_USER}@${EC2_IP}:${REMOTE_DIR}/
+                        ssh -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} ${EC2_USER}@${EC2_IP} 'sudo systemctl restart nginx'
+                    '''
                 }
             }
         }
     }
+
+    post {
+        success {
+            echo "Build and deployment successful!"
+        }
+        failure {
+            echo "Build failed. Check the logs for errors."
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// pipeline {
+//     agent any
+
+//     environment {
+//         PATH = "/usr/bin:/usr/local/bin:$PATH" // Ensure global npm binaries are accessible
+//         BUILD_DIR = 'dist'
+//         EC2_USER = "ec2-user"
+//         EC2_IP = "13.202.85.195"
+//         REMOTE_DIR = "/usr/share/nginx/html"
+//     }
+
+//     stages {
+//         stage('Checkout Code') {
+//             steps {
+//                 git branch: 'master', url: 'https://github.com/patildinu/real-estate-management'
+//             }
+//         }
+//         stage('Install Dependencies') {
+//             steps {
+//                 sh 'node -v'
+//                 sh 'npm -v'
+//                 sh 'npm install @angular/cli'  // Ensure global installation
+//                 sh 'export PATH=$(npm root -g)/.bin:$PATH' // Add npm global binaries to PATH
+//                 // sh 'ng version'  // Verify installation
+//                 sh 'rm -rf node_modules package-lock.json || true'
+//                 sh 'npm cache clean --force'
+//                 sh 'npm install'
+//             }
+//         }
+//         stage('Build Angular App') {
+//             steps {
+//                 sh 'export PATH=$(npm root -g)/.bin:$PATH && ng build --output-path=dist'
+//                 sh 'ls -l ${BUILD_DIR}/'
+//             }
+//         }
+//         stage('Deploy to EC2') {
+//             steps {
+//                 withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_KEY', keyFileVariable: 'SSH_KEY_PATH', usernameVariable: 'SSH_USER')]) {
+//                     sh "scp -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} -r ${BUILD_DIR}/* ${EC2_USER}@${EC2_IP}:${REMOTE_DIR}/"
+//                     sh "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} ${EC2_USER}@${EC2_IP} 'sudo systemctl restart nginx'"
+//                 }
+//             }
+//         }
+//     }
+// }
 
 
 
