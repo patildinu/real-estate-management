@@ -4,7 +4,7 @@ pipeline {
 
     environment {
         PATH = "/usr/bin:/usr/local/bin:$PATH" // Ensure global npm binaries are accessible
-        BUILD_DIR = 'dist'
+        BUILD_DIR = 'frontend/dist'
         EC2_USER = "ec2-user"
         EC2_IP = "13.202.85.195"
         REMOTE_DIR = "/usr/share/nginx/html"
@@ -20,17 +20,18 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    echo "Node Version:" && node -v
-                    echo "NPM Version:" && npm -v
+                    echo "Node Version:"
+                    node -v
 
-                    echo "Configuring npm global directory"
-                    mkdir -p ~/.npm-global
-                    npm config set prefix ~/.npm-global
-                    export PATH=$HOME/.npm-global/bin:$PATH
+                    echo "NPM Version:"
+                    npm -v
 
                     echo "Installing Angular CLI..."
                     npm install -g @angular/cli
                     export PATH=$(npm root -g)/.bin:$PATH
+
+                    echo "Moving into frontend directory..."
+                    cd frontend
 
                     echo "Cleaning Cache and Reinstalling Dependencies..."
                     rm -rf node_modules package-lock.json || true
@@ -38,7 +39,7 @@ pipeline {
                     npm install
 
                     echo "Angular CLI Version:"
-                    ng version
+                    npx ng version
                 '''
             }
         }
@@ -48,8 +49,9 @@ pipeline {
                 sh '''
                     export PATH=$(npm root -g)/.bin:$PATH
                     echo "Building Angular Project..."
-                    ng build --configuration=production --output-path=${BUILD_DIR}
-                    ls -l ${BUILD_DIR}/
+                    cd frontend
+                    ng build --configuration=production --output-path=dist
+                    ls -l dist/
                 '''
             }
         }
@@ -59,7 +61,7 @@ pipeline {
                 withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_KEY', keyFileVariable: 'SSH_KEY_PATH', usernameVariable: 'SSH_USER')]) {
                     sh '''
                         echo "Deploying to EC2..."
-                        scp -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} -r ${BUILD_DIR}/* ${EC2_USER}@${EC2_IP}:${REMOTE_DIR}/
+                        scp -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} -r frontend/dist/* ${EC2_USER}@${EC2_IP}:${REMOTE_DIR}/
                         ssh -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} ${EC2_USER}@${EC2_IP} 'sudo systemctl restart nginx'
                     '''
                 }
@@ -76,6 +78,94 @@ pipeline {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+// pipeline {
+//     agent any
+
+//     environment {
+//         PATH = "/usr/bin:/usr/local/bin:$PATH" // Ensure global npm binaries are accessible
+//         BUILD_DIR = 'dist'
+//         EC2_USER = "ec2-user"
+//         EC2_IP = "13.202.85.195"
+//         REMOTE_DIR = "/usr/share/nginx/html"
+//     }
+
+//     stages {
+//         stage('Checkout Code') {
+//             steps {
+//                 git branch: 'main', url: 'https://github.com/patildinu/real-estate-management'
+//             }
+//         }
+
+//         stage('Install Dependencies') {
+//             steps {
+//                 sh '''
+//                     echo "Node Version:" && node -v
+//                     echo "NPM Version:" && npm -v
+
+//                     echo "Configuring npm global directory"
+//                     mkdir -p ~/.npm-global
+//                     npm config set prefix ~/.npm-global
+//                     export PATH=$HOME/.npm-global/bin:$PATH
+
+//                     echo "Installing Angular CLI..."
+//                     npm install -g @angular/cli
+//                     export PATH=$(npm root -g)/.bin:$PATH
+
+//                     echo "Cleaning Cache and Reinstalling Dependencies..."
+//                     rm -rf node_modules package-lock.json || true
+//                     npm cache clean --force
+//                     npm install
+
+//                     echo "Angular CLI Version:"
+//                     ng version
+//                 '''
+//             }
+//         }
+
+//         stage('Build Angular App') {
+//             steps {
+//                 sh '''
+//                     export PATH=$(npm root -g)/.bin:$PATH
+//                     echo "Building Angular Project..."
+//                     ng build --configuration=production --output-path=${BUILD_DIR}
+//                     ls -l ${BUILD_DIR}/
+//                 '''
+//             }
+//         }
+
+//         stage('Deploy to EC2') {
+//             steps {
+//                 withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_KEY', keyFileVariable: 'SSH_KEY_PATH', usernameVariable: 'SSH_USER')]) {
+//                     sh '''
+//                         echo "Deploying to EC2..."
+//                         scp -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} -r ${BUILD_DIR}/* ${EC2_USER}@${EC2_IP}:${REMOTE_DIR}/
+//                         ssh -o StrictHostKeyChecking=no -i ${SSH_KEY_PATH} ${EC2_USER}@${EC2_IP} 'sudo systemctl restart nginx'
+//                     '''
+//                 }
+//             }
+//         }
+//     }
+
+//     post {
+//         success {
+//             echo "Build and deployment successful!"
+//         }
+//         failure {
+//             echo "Build failed. Check the logs for errors."
+//         }
+//     }
+// }
 
 
 
