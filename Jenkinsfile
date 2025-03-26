@@ -19,7 +19,7 @@ pipeline {
             steps {
                 sh 'node -v'
                 sh 'npm -v'
-                sh 'npm install -g @angular/cli'  // Ensure global installation
+                sh 'npm install @angular/cli'  // Ensure global installation
                 sh 'export PATH=$(npm root -g)/.bin:$PATH' // Add npm global binaries to PATH
                 sh 'ng version'  // Verify installation
                 sh 'rm -rf node_modules package-lock.json || true'
